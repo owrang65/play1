@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی سوالات دو نفره با انتخاب موضوع</title>
+    <style>
+     body {
+            background: linear-gradient(to right, #ffecd2, #fcb69f);
+            font-family: 'Arial', sans-serif;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1, h2 {
+            color: #444;
+            margin-bottom: 20px;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        #topic-selection, #game-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #options button {
+            display: block;
+            margin: 10px auto;
+            padding: 10px;
+            width: 80%;
+            font-size: 18px;
+            background-color: #fcb69f;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.3s, background-color 0.3s;
+        }
+
+        #options button:hover {
+            transform: scale(1.05);
+        }
+
+        #options button:active {
+            background-color: #ff9671;
+        }
+
+        .correct {
+            background-color: #27ae60 !important; /* سبز */
+        }
+
+        .incorrect {
+            background-color: #e74c3c !important; /* قرمز */
+        }
+
+        #timer {
+            font-size: 20px;
+            color: #e74c3c;
+            margin-top: 20px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #result {
+            display: none;
+            font-size: 24px;
+            color: #27ae60;
+        }
+    </style>
+    </head>
+    </head>
+<body>
+    <div id="topic-selection">
+        <h1>یک موضوع انتخاب کنید:</h1>
+        <button onclick="selectTopic('general')">اطلاعات عمومی</button>
+        <button onclick="selectTopic('history')">تاریخ</button>
+        <button onclick="selectTopic('geography')">جغرافیا</button>
+        <button onclick="selectTopic('cinema')">سینما</button>
+    </div>
+
+    <div id="game-container" style="display:none;">
+        <h1 id="question"></h1>
+        <h2 id="player-turn"></h2>
+        <div id="options">
+            <button id="option0" onclick="selectOption(0)"></button>
+            <button id="option1" onclick="selectOption(1)"></button>
+            <button id="option2" onclick="selectOption(2)"></button>
+            <button id="option3" onclick="selectOption(3)"></button>
+        </div>
+        <div id="timer">زمان باقیمانده: <span id="time-left">15</span> ثانیه</div>
+        <p id="score"></p>
+        <p id="result"></p>
+    </div>
+
+    <script>
+        const questionSets = {
+            general: [
+                { question: "پایتخت ایران کدام است؟", options: ["تهران", "مشهد", "شیراز", "اصفهان"], correctAnswer: 0 },
+                { question: "پایتخت فرانسه کدام است؟", options: ["پاریس", "برلین", "لندن", "مادرید"], correctAnswer: 0 }
+            ],
+            history: [
+                { question: "اولین رئیس‌جمهور ایران چه کسی بود؟", options: ["بنی‌صدر", "خاتمی", "خامنه‌ای", "احمدی‌نژاد"], correctAnswer: 0 },
+                { question: "جنگ جهانی دوم در چه سالی شروع شد؟", options: ["۱۹۳۹", "۱۹۴۱", "۱۹۱۴", "۱۹۴۵"], correctAnswer: 0 }
+            ],
+            geography: [
+                { question: "بزرگترین قاره جهان کدام است؟", options: ["آسیا", "آفریقا", "اروپا", "آمریکا"], correctAnswer: 0 },
+                { question: "بلندترین کوه جهان کدام است؟", options: ["اورست", "کی۲", "کانچنجونگا", "لوته"], correctAnswer: 0 }
+            ],
+            cinema: [
+                { question: "فیلم برنده اسکار ۱۹۹۴ چه بود؟", options: ["فارست گامپ", "شاوشنگ", "پالپ فیکشن", "لیون کینگ"], correctAnswer: 0 },
+                { question: "کارگردان فیلم Inception کیست؟", options: ["نولان", "اسپیلبرگ", "تارانتینو", "اسکورسیزی"], correctAnswer: 0 }
+            ]
+        };
+
+        let currentQuestion = 0;
+        let player1Score = 0;
+        let player2Score = 0;
+        let currentPlayer = 1;
+        let selectedQuestions = [];
+        let timerInterval;
+
+        function selectTopic(topic) {
+            selectedQuestions = questionSets[topic];
+            document.getElementById("topic-selection").style.display = "none";
+            document.getElementById("game-container").style.display = "block";
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            clearOptionStyles();
+            if (currentQuestion < selectedQuestions.length) {
+                document.getElementById("question").textContent = selectedQuestions[currentQuestion].question;
+                document.getElementById("option0").textContent = selectedQuestions[currentQuestion].options[0];
+                document.getElementById("option1").textContent = selectedQuestions[currentQuestion].options[1];
+                document.getElementById("option2").textContent = selectedQuestions[currentQuestion].options[2];
+                document.getElementById("option3").textContent = selectedQuestions[currentQuestion].options[3];
+                document.getElementById("player-turn").textContent = `نوبت بازیکن ${currentPlayer}`;
+
+                startTimer();
+            } else {
+                if (currentPlayer === 1) {
+                    currentPlayer = 2;
+                    currentQuestion = 0;
+                    loadQuestion();
+                } else {
+                    compareScores();
+                }
+            }
+        }
+
+        function selectOption(option) {
+            clearInterval(timerInterval);
+
+            const correctAnswer = selectedQuestions[currentQuestion].correctAnswer;
+
+            // بررسی اینکه آیا پاسخ درست است یا نه
+            if (option === correctAnswer) {
+                document.getElementById(`option${option}`).classList.add('correct');
+                if (currentPlayer === 1) player1Score++;
+                else player2Score++;
+            } else {
+                document.getElementById(`option${option}`).classList.add('incorrect');
+                document.getElementById(`option${correctAnswer}`).classList.add('correct');
+            }
+
+            // ۲ ثانیه مکث برای نمایش رنگ‌ها قبل از رفتن به سوال بعدی
+            setTimeout(() => {
+                currentQuestion++;
+                loadQuestion();
+            }, 2000);
+        }
+
+        function compareScores() {
+            let resultMessage = `امتیاز بازیکن ۱: ${player1Score} - امتیاز بازیکن ۲: ${player2Score}`;
+            document.getElementById("result").textContent = resultMessage;
+            document.getElementById("result").style.display = "block";
+        }
+
+        function clearOptionStyles() {
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`option${i}`).classList.remove('correct', 'incorrect');
+            }
+        }
+
+        function startTimer() {
+            let timeLeft = 15;
+            document.getElementById("time-left").textContent = timeLeft;
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById("time-left").textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    selectOption(-1); // پاسخ ندادن به سوال
+                }
+            }, 1000);
+        }
+    
+    </script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+
+    <script>
+    const firebaseConfig = {
+  apiKey: "AIzaSyC0WvNjZPvkvysHb16UET1LvNCIkMx-dwY",
+  authDomain: "play-and-win-331ef.firebaseapp.com",
+  projectId: "play-and-win-331ef",
+  storageBucket: "play-and-win-331ef.appspot.com",
+  messagingSenderId: "683173125172",
+  appId: "1:683173125172:web:2a75b2649b1ec1e517be61",
+  measurementId: "G-JH290V8ETV"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
